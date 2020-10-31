@@ -386,7 +386,6 @@ def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
-
     DESCRIPTION:
     We use 7 features of the state space and take their weighted sum to get an estimate of the state utility
     The weights are fine tuned using experimentation and hyperparameter tuning
@@ -397,20 +396,18 @@ def betterEvaluationFunction(currentGameState):
 
     if currentGameState.isLose():
         return -np.inf
-    if currentGameState.isWin():
-        return np.inf
 
     currentGhosts = currentGameState.getGhostStates()
-    ghostPos = []
+    ghostScores = []
     for i in range(len(currentGhosts)):
         if currentGhosts[i].scaredTimer == 0:
-            ghostPos.append(currentGhosts[i].getPosition())
-
-    minGhostDistance = np.inf
-    for i in range(len(ghostPos)):
-        dist = manhattanDistance(ghostPos[i], currentPos)
-        if dist < minGhostDistance:
-            minGhostDistance = dist
+            dist = manhattanDistance(currentGhosts[i].getPosition(), currentPos)
+            ghostScores.append(-10.0/(dist+0.0001))
+        else:
+            dist = manhattanDistance(currentGhosts[i].getPosition(), currentPos)
+            ghostScores.append(50.0/(dist+0.0001))
+            
+        
 
     foods = currentGameState.getFood()
     currentFoods = foods.asList()
@@ -434,24 +431,31 @@ def betterEvaluationFunction(currentGameState):
     meanFoodDistance = 0
     for i in range(len(currentFoods)):
         meanFoodDistance += manhattanDistance(currentFoods[i], currentPos)
-    meanFoodDistance = float(meanFoodDistance)/len(currentFoods)
+    if len(currentFoods) != 0:
+        meanFoodDistance = float(meanFoodDistance)/len(currentFoods)
 
     
 
     currentScore = currentGameState.getScore() 
-    features = [len(currentFoods), currentScore, len(currentPellets), minFoodDistance,minGhostDistance, minPelletDistance, meanFoodDistance]
-    weights = [-85.0, 10.0, -60.0, -10.0, 8.0, -7.5, 1.5]
+    features = [len(currentFoods), currentScore, len(currentPellets), 1.0/(minFoodDistance+0.0001),sum(ghostScores),1.0/(minPelletDistance+0.0001), 1.0/(meanFoodDistance+0.0001)]
+    weights = [-1.0, 1.0, -1.0, 10.0, 1.0, 2.0, 2.5]
 
     score = 0
     for i in range(len(weights)):
-        if i==4:
-            if features[i] < 5:
-                score = score + weights[i]*features[i] + random.randint(0,10)
-            else:
+        
+        if i==3 or i==len(weights)-1:
+            if features[0] == 0:
                 continue
-                
+        if i==5 or i==6:
+            if features[2] == 0:
+                continue
         score = score + weights[i]*features[i] + random.randint(0,10)
+
+    if features[0] == 0:
+        score = max(score, currentScore)
+
     return score
+
         
     
     
